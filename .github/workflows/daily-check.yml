@@ -31,6 +31,7 @@ jobs:
 
       - name: 执行每日监控
         env:
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
         run: python scheduler.py
 

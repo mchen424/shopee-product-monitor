@@ -116,13 +116,14 @@ def run_daily_check():
     logger.info(f"每日检查完成 - 成功: {success_count}, 失败: {error_count}")
     logger.info("=" * 50)
 
-    # 发送微信通知
-    send_scrape_report(
+    # 发送通知（企微 + PushPlus 双通道）
+    wecom_ok, pushplus_ok = send_scrape_report(
         success_count=success_count,
         error_count=error_count,
         total=len(products),
         errors=error_details if error_details else None,
     )
+    logger.info(f"通知发送: 企微={'OK' if wecom_ok else 'SKIP'}, PushPlus={'OK' if pushplus_ok else 'SKIP'}")
 
 
 if __name__ == "__main__":

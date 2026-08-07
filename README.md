@@ -78,16 +78,21 @@ https://shopee.co.id/product/123/456/?itemid=789&shopid=123
 
 也可以手动触发：进入 Actions 页面 → `每日 Shopee 商品监控` → `Run workflow`
 
-### 配置微信通知 (PushPlus)
+### 配置通知 (企业微信 + PushPlus)
 
-当抓取失败或被拦截时，系统会通过 PushPlus 推送微信通知：
+GitHub Actions 每次运行完会自动推送抓取报告。
 
-1. 前往 [pushplus.plus](http://www.pushplus.plus) 注册并获取 Token
-2. 在 GitHub 仓库中设置 Secret：Settings → Secrets and variables → Actions → New repository secret
-3. Name 填 `PUSHPLUS_TOKEN`，Value 填你的 PushPlus Token
-4. 之后每次定时任务完成，微信就会收到抓取报告
+**企业微信（推荐，无 7 天限制）：**
 
-> 如果不配置 Token，不会发送通知，不影响其他功能。
+1. 在企业微信群里添加机器人，获取 Webhook 地址
+2. 在 GitHub 仓库 Settings → Secrets → Actions 中新建 `WECOM_WEBHOOK`，粘贴完整 Webhook 地址
+
+**PushPlus 微信推送（备用）：**
+
+1. 前往 [pushplus.plus](http://www.pushplus.plus) 获取 Token
+2. 同上新建 `PUSHPLUS_TOKEN` Secret
+
+> 两种通知可同时配置，互不干扰。都不配置也不影响抓取功能。
 
 ## 📊 数据说明
 
