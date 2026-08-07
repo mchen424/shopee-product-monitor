@@ -430,19 +430,15 @@ def page_dashboard():
                     st.caption(f"更新: {last_check[:10]}")
 
             with cols[5]:
-                col_btn1, col_btn2 = st.columns(2)
-                with col_btn1:
-                    if st.button("📊", key=f"detail_{product['id']}", help="查看详情"):
-                        st.session_state["selected_product"] = product["id"]
-                        st.session_state["page"] = "商品详情"
-                        st.rerun()
-                with col_btn2:
-                    if st.button("🔄", key=f"refresh_{product['id']}", help="刷新数据"):
-                        with st.spinner("更新中..."):
-                            refresh_product(product)
-                        st.rerun()
-
-                if st.button("✏️ 手动", key=f"manual_{product['id']}", help="手动输入数据"):
+                if st.button("📊 详情", key=f"detail_{product['id']}"):
+                    st.session_state["selected_product"] = product["id"]
+                    st.session_state["page"] = "商品详情"
+                    st.rerun()
+                if st.button("🔄 刷新", key=f"refresh_{product['id']}"):
+                    with st.spinner("更新中..."):
+                        refresh_product(product)
+                    st.rerun()
+                if st.button("✏️ 手动", key=f"manual_{product['id']}"):
                     st.session_state["manual_product"] = product["id"]
                     st.session_state["page"] = "手动录入"
                     st.rerun()
