@@ -378,6 +378,22 @@ def page_dashboard():
         st.info("👋 还没有监控任何商品，快去「添加商品」页面添加吧！")
         return
 
+    # 地区映射
+    region_names = {
+        "my": "🇲🇾 马来西亚", "sg": "🇸🇬 新加坡", "th": "🇹🇭 泰国",
+        "ph": "🇵🇭 菲律宾", "id": "🇮🇩 印尼", "vn": "🇻🇳 越南",
+        "tw": "🇨🇳 中国台湾", "br": "🇧🇷 巴西",
+    }
+
+    # 地区筛选
+    all_regions = sorted(set(p["region"] for p in products if p.get("region")))
+    region_options = ["全部"] + [f"{region_names.get(r, r.upper())}" for r in all_regions]
+    selected_label = st.selectbox("🌍 地区筛选", region_options, index=0)
+
+    if selected_label != "全部":
+        selected_region = all_regions[region_options.index(selected_label) - 1]
+        products = [p for p in products if p["region"] == selected_region]
+
     # 顶部统计卡片
     total = len(products)
     today_new = sum(1 for p in products if p.get("last_check_at"))
