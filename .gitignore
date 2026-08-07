@@ -31,7 +31,13 @@ Thumbs.db
 .env
 .env.local
 
-# Data (数据文件由 Git 跟踪，以便 GitHub Actions 持久化)
-# data/*.db 需要在 workflow 中 commit
+# Data
 data/debug_page.png
 data/shopee_monitor.db
+data/browser_profile/
+data/shopee_cookies.json
+
+# Test files
+_test.py
+test_cookies.py
+save_cookie.py
