@@ -1,0 +1,41 @@
+name: 抓取测试（一次性验证）
+
+on: workflow_dispatch
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 安装 Playwright
+        run: playwright install chromium --with-deps
+
+      - name: 测试抓取
+        env:
+          SHOPEE_COOKIES: ${{ secrets.SHOPEE_COOKIES }}
+        run: |
+          python -c "
+          from scraper_playwright import fetch_product_info
+          result = fetch_product_info('23947895363', '217742960', 'my')
+          if result['success']:
+              print('=== 抓取成功 ===')
+              print(f'标题: {result[\"title\"]}')
+              print(f'价格: {result[\"price\"]}')
+              print(f'销量: {result[\"historical_sold\"]}')
+              print(f'库存: {result[\"stock\"]}')
+              print(f'评分: {result[\"rating_star\"]}')
+          else:
+              print(f'=== 抓取失败 ===')
+              print(f'错误: {result[\"error\"]}')
+          "
