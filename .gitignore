@@ -34,3 +34,4 @@ Thumbs.db
 # Data (数据文件由 Git 跟踪，以便 GitHub Actions 持久化)
 # data/*.db 需要在 workflow 中 commit
 data/debug_page.png
+data/shopee_monitor.db

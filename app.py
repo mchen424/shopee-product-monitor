@@ -23,6 +23,7 @@ from database import (
     get_snapshot_count, get_price_change, get_sales_change
 )
 from scraper import parse_shopee_url, fetch_product_info
+from sync import download_db, upload_db
 
 # ============ 页面配置 ============
 st.set_page_config(
@@ -34,6 +35,9 @@ st.set_page_config(
 
 # 初始化数据库
 init_database()
+
+# 从私有仓库下载最新数据库（如果配置了）
+download_db()
 
 # ============ 密码认证 ============
 
@@ -320,6 +324,7 @@ def page_add_product():
                 )
                 del st.session_state["pending_add"]
                 st.success("✅ 商品已添加到监控列表！")
+                upload_db()
                 st.balloons()
                 time.sleep(1)
                 st.rerun()
@@ -652,6 +657,7 @@ def page_batch_refresh():
         progress.empty()
         status_text.empty()
         st.success("✅ 全部刷新完成！")
+        upload_db()
         st.balloons()
 
 
@@ -732,6 +738,7 @@ def page_manual_input():
                 rating_star=rating if rating > 0 else None,
             )
             st.success("✅ 数据已保存！")
+            upload_db()
             st.session_state["page"] = "监控大盘"
             time.sleep(0.5)
             st.rerun()

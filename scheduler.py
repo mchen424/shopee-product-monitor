@@ -16,6 +16,7 @@ from database import (
 )
 from scraper import fetch_product_info
 from notify import send_scrape_report
+from sync import upload_db
 
 # 配置日志
 logging.basicConfig(
@@ -116,14 +117,16 @@ def run_daily_check():
     logger.info(f"每日检查完成 - 成功: {success_count}, 失败: {error_count}")
     logger.info("=" * 50)
 
-    # 发送通知（企微 + PushPlus 双通道）
+    # 发送微信通知
     wecom_ok, pushplus_ok = send_scrape_report(
         success_count=success_count,
         error_count=error_count,
         total=len(products),
         errors=error_details if error_details else None,
     )
-    logger.info(f"通知发送: 企微={'OK' if wecom_ok else 'SKIP'}, PushPlus={'OK' if pushplus_ok else 'SKIP'}")
+
+    # 同步数据库到私有仓库
+    upload_db()
 
 
 if __name__ == "__main__":
