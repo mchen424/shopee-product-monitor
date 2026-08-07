@@ -3,6 +3,7 @@ Shopee 商品监控工具 - Streamlit 主应用
 功能：添加商品链接监控、查看价格/销量趋势、每日自动更新
 """
 
+import os
 import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -33,6 +34,46 @@ st.set_page_config(
 
 # 初始化数据库
 init_database()
+
+# ============ 密码认证 ============
+
+def get_password():
+    """从环境变量或 Streamlit Secrets 获取密码"""
+    # Streamlit Cloud: st.secrets
+    try:
+        return st.secrets["APP_PASSWORD"]
+    except Exception:
+        pass
+    # 本地: 环境变量
+    return os.environ.get("APP_PASSWORD", "")
+
+def check_login():
+    """检查登录状态"""
+    if "authenticated" not in st.session_state:
+        st.session_state["authenticated"] = False
+
+    password = get_password()
+    if not password:
+        # 未设置密码，跳过认证
+        st.session_state["authenticated"] = True
+        return
+
+    if st.session_state["authenticated"]:
+        return
+
+    # 登录表单
+    st.markdown("<h2 style='text-align:center;margin-top:80px'>Shopee 商品监控</h2>", unsafe_allow_html=True)
+    with st.form("login_form"):
+        pwd = st.text_input("请输入访问密码", type="password", placeholder="输入密码后回车")
+        if st.form_submit_button("登录", type="primary", use_container_width=True):
+            if pwd == password:
+                st.session_state["authenticated"] = True
+                st.rerun()
+            else:
+                st.error("密码错误")
+    st.stop()
+
+check_login()
 
 # ============ 自定义样式 ============
 st.markdown("""
