@@ -32,4 +32,5 @@ jobs:
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
           DATA_REPO: ${{ secrets.DATA_REPO }}
           DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+          SHOPEE_COOKIES: ${{ secrets.SHOPEE_COOKIES }}
         run: python scheduler.py

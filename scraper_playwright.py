@@ -8,6 +8,7 @@ Shopee 商品数据抓取 — Playwright 浏览器渲染版本
 
 import re
 import json
+import os
 import time
 import logging
 from typing import Optional, Dict
@@ -15,6 +16,29 @@ from typing import Optional, Dict
 from config import SHOPEE_DOMAINS
 
 logger = logging.getLogger(__name__)
+
+# 从环境变量加载 Shopee Cookie（JSON 格式）
+def _load_cookies() -> list:
+    raw = os.environ.get("SHOPEE_COOKIES", "")
+    if not raw:
+        return []
+    try:
+        cookies = json.loads(raw)
+        # 补充 domain 和 path
+        for c in cookies:
+            if "domain" not in c:
+                c["domain"] = ".shopee.com.my"
+            if "path" not in c:
+                c["path"] = "/"
+            if "httpOnly" not in c:
+                c["httpOnly"] = True
+            if "secure" not in c:
+                c["secure"] = True
+            if "sameSite" not in c:
+                c["sameSite"] = "Lax"
+        return cookies
+    except json.JSONDecodeError:
+        return []
 
 try:
     from playwright.sync_api import sync_playwright
@@ -63,6 +87,12 @@ def fetch_product_info(item_id: str, shop_id: str, region: str) -> Dict:
             locale="en-US",
         )
         page = context.new_page()
+
+        # 注入 Shopee Cookie（从环境变量加载）
+        cookies = _load_cookies()
+        if cookies:
+            context.add_cookies(cookies)
+            logger.info(f"已注入 {len(cookies)} 个 Shopee Cookie")
 
         # Stealth 模式
         if HAS_STEALTH:
