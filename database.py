@@ -258,3 +258,74 @@ def get_sales_change(product_id: int, days: int = 1) -> Optional[Dict]:
                 "direction": "up" if change > 0 else ("down" if change < 0 else "flat")
             }
         return None
+
+
+# ============ 增强统计 ============
+
+def get_daily_sales_stats(product_id: int, days: int = 7) -> Dict:
+    """计算日销量统计（累计销量差值法）"""
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT snapshot_date, sold_count FROM daily_snapshots
+            WHERE product_id = ? AND sold_count IS NOT NULL
+            ORDER BY snapshot_date DESC LIMIT ?
+        """, (product_id, days + 1)).fetchall()
+
+        if len(rows) < 2:
+            return {"avg_daily": 0, "total_daily": 0, "trend": "flat", "days": 0}
+
+        daily_sales = []
+        for i in range(len(rows) - 1):
+            diff = rows[i]["sold_count"] - rows[i + 1]["sold_count"]
+            if diff >= 0:
+                daily_sales.append(diff)
+
+        if not daily_sales:
+            return {"avg_daily": 0, "total_daily": 0, "trend": "flat", "days": 0}
+
+        avg = round(sum(daily_sales) / len(daily_sales), 1)
+        total = sum(daily_sales)
+
+        mid = max(len(daily_sales) // 2, 1)
+        recent = daily_sales[:mid]
+        older = daily_sales[mid:] if len(daily_sales) > mid else daily_sales
+        recent_avg = sum(recent) / len(recent)
+        older_avg = sum(older) / len(older)
+        if older_avg > 0:
+            pct = (recent_avg - older_avg) / older_avg * 100
+            if pct > 10: trend = "surging"
+            elif pct > 3: trend = "rising"
+            elif pct < -10: trend = "declining"
+            elif pct < -3: trend = "slowing"
+            else: trend = "stable"
+        else:
+            trend = "stable" if recent_avg > 0 else "flat"
+
+        return {"avg_daily": avg, "total_daily": total, "trend": trend, "days": len(daily_sales)}
+
+
+def get_tracking_streak(product_id: int) -> Dict:
+    """计算连续追踪天数"""
+    from datetime import date, timedelta
+    with get_db() as conn:
+        rows = conn.execute("""
+            SELECT DISTINCT snapshot_date FROM daily_snapshots
+            WHERE product_id = ? ORDER BY snapshot_date DESC
+        """, (product_id,)).fetchall()
+
+        if not rows:
+            return {"streak": 0, "total_days": 0}
+
+        dates_set = set(r["snapshot_date"] for r in rows)
+        today = date.today()
+        streak = 0
+        check = today
+        while str(check) in dates_set:
+            streak += 1
+            check -= timedelta(days=1)
+        if streak == 0:
+            check = today - timedelta(days=1)
+            while str(check) in dates_set:
+                streak += 1
+                check -= timedelta(days=1)
+        return {"streak": streak, "total_days": len(dates_set)}

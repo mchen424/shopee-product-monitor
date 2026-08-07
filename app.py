@@ -20,7 +20,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from database import (
     init_database, add_product, get_all_products, get_product,
     update_product, delete_product, save_snapshot, get_snapshots,
-    get_snapshot_count, get_price_change, get_sales_change
+    get_snapshot_count, get_price_change, get_sales_change,
+    get_daily_sales_stats, get_tracking_streak,
 )
 from scraper import parse_shopee_url, fetch_product_info
 from sync import download_db, upload_db
@@ -505,6 +506,24 @@ def page_product_detail(product_id: int):
     # 链接
     st.caption(f"🔗 [在 Shopee 查看]({product['url']})")
     st.caption(f"站点: {product['region'].upper()} | 上次更新: {product.get('last_check_at', 'N/A')}")
+
+    # 增强统计: 销量分析 + 追踪天数
+    sales_stats = get_daily_sales_stats(product_id, days=7)
+    streak = get_tracking_streak(product_id)
+
+    trend_labels = {
+        "surging": "📈 销量激增", "rising": "📈 销量上升", "stable": "➡️ 销量平稳",
+        "slowing": "📉 销量放缓", "declining": "📉 销量下降", "flat": "➡️ 暂无变化"
+    }
+
+    if sales_stats["avg_daily"] > 0 or streak["streak"] > 0:
+        col_a, col_b, col_c = st.columns(3)
+        with col_a:
+            st.metric("📊 日均销量 (近7天)", f"{sales_stats['avg_daily']:.0f} 件/天")
+        with col_b:
+            st.metric("🔥 销量趋势", trend_labels.get(sales_stats["trend"], "➡️ 平稳"))
+        with col_c:
+            st.metric("📅 连续追踪", f"{streak['streak']} 天", delta=f"共 {streak['total_days']} 天")
 
     st.markdown("---")
 
