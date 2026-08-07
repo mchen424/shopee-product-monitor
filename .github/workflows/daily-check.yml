@@ -1,0 +1,48 @@
+name: 每日 Shopee 商品监控
+
+on:
+  schedule:
+    # 每天 UTC 0:00 和 12:00 运行（北京时间 8:00 和 20:00）
+    - cron: "0 0,12 * * *"
+  workflow_dispatch:
+    # 允许手动触发
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 安装 Playwright 浏览器
+        run: |
+          playwright install chromium
+
+      - name: 执行每日监控
+        env:
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+        run: python scheduler.py
+
+      - name: 提交数据更新
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/
+          git diff --staged --quiet || git commit -m "📊 每日监控数据更新 - $(date +'%Y-%m-%d')"
+
+      - name: 推送更新
+        uses: ad-m/github-push-action@v0.8.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
