@@ -213,6 +213,82 @@ def page_add_product():
     """添加商品页面"""
     st.header("➕ 添加监控商品")
 
+    # 处理确认添加（独立于表单，防止页面刷新丢失数据）
+    if st.session_state.get("pending_add"):
+        pending = st.session_state["pending_add"]
+        st.success(f"✅ 识别到站点: {pending['domain']} | 商品ID: {pending['item_id']}")
+
+        info = pending["info"]
+        parsed = pending["parsed"]
+
+        if not info["success"]:
+            st.warning(f"⚠️ 抓取未成功，但可以先添加监控，稍后通过「手动录入」补充数据。")
+            st.caption(f"错误详情: {info.get('error', '未知')}")
+            info["title"] = f"待获取商品 ({parsed['item_id']})"
+
+        # 展示已有信息
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col1:
+            if info.get("image_url"):
+                st.image(info["image_url"], width=200)
+            else:
+                st.markdown("📷 暂无图片")
+        with col2:
+            st.markdown(f"### {info.get('title') or '未知商品'}")
+            st.markdown(f"**站点:** {parsed['domain']} | 商品ID: {parsed['item_id']}")
+            price_col1, price_col2 = st.columns(2)
+            with price_col1:
+                st.metric("当前价格", format_price(info.get("price"), parsed["region"]))
+            with price_col2:
+                if info.get("original_price"):
+                    st.metric("原价", format_price(info["original_price"], parsed["region"]))
+        with col3:
+            st.metric("📦 库存", format_number(info.get("stock")))
+            st.metric("📈 历史销量", format_number(info.get("historical_sold")))
+            if info.get("rating_star"):
+                st.metric("⭐ 评分", f"{info['rating_star']:.1f} ({format_number(info.get('rating_count'))}评价)")
+
+        # 确认添加按钮
+        col_btn1, col_btn2 = st.columns(2)
+        with col_btn1:
+            if st.button("✅ 确认添加监控", type="primary", use_container_width=True):
+                product_id = add_product(
+                    url=pending["url"],
+                    item_id=parsed["item_id"],
+                    shop_id=parsed["shop_id"],
+                    region=parsed["region"],
+                    title=info["title"],
+                    image_url=info.get("image_url"),
+                    price=info.get("price"),
+                    original_price=info.get("original_price"),
+                    stock=info.get("stock"),
+                    sold=info.get("historical_sold"),
+                    rating_star=info.get("rating_star"),
+                    rating_count=info.get("rating_count"),
+                )
+                save_snapshot(
+                    product_id=product_id,
+                    snapshot_date=date.today(),
+                    price=info.get("price"),
+                    original_price=info.get("original_price"),
+                    stock=info.get("stock"),
+                    sold_count=info.get("historical_sold"),
+                    rating_star=info.get("rating_star"),
+                    rating_count=info.get("rating_count"),
+                    title=info["title"],
+                )
+                del st.session_state["pending_add"]
+                st.success("✅ 商品已添加到监控列表！")
+                st.balloons()
+                time.sleep(1)
+                st.rerun()
+        with col_btn2:
+            if st.button("❌ 取消", use_container_width=True):
+                del st.session_state["pending_add"]
+                st.rerun()
+        return
+
+    # 输入表单
     with st.form("add_product_form", clear_on_submit=True):
         url = st.text_input(
             "Shopee 商品链接",
@@ -224,81 +300,21 @@ def page_add_product():
 
         if submitted and url:
             try:
-                # 1. 解析URL
                 with st.spinner("正在解析商品链接..."):
                     parsed = parse_shopee_url(url)
-                    st.success(f"✅ 识别到站点: {parsed['domain']} | 商品ID: {parsed['item_id']}")
 
-                # 2. 抓取商品信息
                 with st.spinner("正在从 Shopee 获取商品数据..."):
                     info = fetch_product_info(parsed["item_id"], parsed["shop_id"], parsed["region"])
 
-                if not info["success"]:
-                    st.error(f"❌ 获取数据失败: {info['error']}")
-                    st.info("💡 提示：Shopee 可能限制了访问，请稍后重试或检查链接是否正确。")
-                    return
-
-                # 3. 展示商品信息
-                st.success("🎉 成功获取商品数据！")
-
-                col1, col2, col3 = st.columns([1, 2, 1])
-
-                with col1:
-                    if info["image_url"]:
-                        st.image(info["image_url"], width=200)
-                    else:
-                        st.markdown("📷 暂无图片")
-
-                with col2:
-                    st.markdown(f"### {info['title']}")
-                    st.markdown(f"**站点:** {parsed['domain']}")
-
-                    price_col1, price_col2 = st.columns(2)
-                    with price_col1:
-                        st.metric("当前价格", format_price(info["price"], parsed["region"]))
-                    with price_col2:
-                        if info["original_price"]:
-                            st.metric("原价", format_price(info["original_price"], parsed["region"]))
-
-                with col3:
-                    st.metric("📦 库存", format_number(info["stock"]))
-                    st.metric("📈 历史销量", format_number(info["historical_sold"]))
-                    if info["rating_star"]:
-                        st.metric("⭐ 评分", f"{info['rating_star']:.1f} ({format_number(info['rating_count'])}评价)")
-
-                # 4. 确认添加
-                st.markdown("---")
-                if st.button("✅ 确认添加监控", type="primary", use_container_width=True):
-                    product_id = add_product(
-                        url=url,
-                        item_id=parsed["item_id"],
-                        shop_id=parsed["shop_id"],
-                        region=parsed["region"],
-                        title=info["title"],
-                        image_url=info["image_url"],
-                        price=info["price"],
-                        original_price=info["original_price"],
-                        stock=info["stock"],
-                        sold=info["historical_sold"],
-                        rating_star=info["rating_star"],
-                        rating_count=info["rating_count"],
-                    )
-
-                    # 同时保存第一条快照
-                    save_snapshot(
-                        product_id=product_id,
-                        snapshot_date=date.today(),
-                        price=info["price"],
-                        original_price=info["original_price"],
-                        stock=info["stock"],
-                        sold_count=info["historical_sold"],
-                        rating_star=info["rating_star"],
-                        rating_count=info["rating_count"],
-                        title=info["title"],
-                    )
-
-                    st.success("✅ 商品已添加到监控列表！")
-                    st.balloons()
+                # 存入 session state，等用户确认
+                st.session_state["pending_add"] = {
+                    "url": url,
+                    "parsed": parsed,
+                    "info": info,
+                    "domain": parsed["domain"],
+                    "item_id": parsed["item_id"],
+                }
+                st.rerun()
 
             except ValueError as e:
                 st.error(f"❌ 链接解析失败: {e}")
